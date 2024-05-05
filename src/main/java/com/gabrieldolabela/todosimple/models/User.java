@@ -1,115 +1,73 @@
 package com.gabrieldolabela.todosimple.models;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
+import com.gabrieldolabela.todosimple.models.enums.ProfileEnum;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = User.TABLE_NAME)
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 public class User {
-    public interface CreateUser {}
-    public interface UpdateUser {}
 
     public static final String TABLE_NAME = "user";
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "username", length = 100, nullable = false, unique = true)
-    @NotNull(groups = CreateUser.class)
-    @NotEmpty(groups = CreateUser.class)
-    @Size(groups = CreateUser.class, min = 6, max = 100)
+    @Size(min = 2, max = 100)
+    @NotBlank
     private String username;
 
+    @Column(name = "password", length = 60, nullable = false)
     @JsonProperty(access = Access.WRITE_ONLY)
-    @Column(name = "password", length = 100, nullable = false)
-    @NotEmpty(groups = {CreateUser.class, UpdateUser.class})
-    @NotNull(groups = {CreateUser.class, UpdateUser.class})
-    @Size(groups = {CreateUser.class, UpdateUser.class}, min = 10, max = 100)
+    @Size(min = 8, max = 60)
+    @NotBlank
     private String password;
 
     @OneToMany(mappedBy = "user")
+    @JsonProperty(access = Access.WRITE_ONLY)
     private List<Task> tasks = new ArrayList<Task>();
 
-    public User() {
+    @Column(name = "profile", nullable = false)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_profile")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private Set<Integer> profiles = new HashSet<>();
+
+    public Set<ProfileEnum> getProfiles() {
+        return this.profiles.stream().map(x -> ProfileEnum.toEnum(x)).collect(Collectors.toSet());
     }
 
-    public User(Long id, String username, String password) {
-        this.id = id;
-        this.username = username;
-        this.password = password;
+    public void addProfile(ProfileEnum profileEnum) {
+        this.profiles.add(profileEnum.getCode());
     }
 
-    @JsonIgnore
-    public List<Task> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<Task> tasks) {
-        this.tasks = tasks;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!(obj instanceof User)) return false;
-        if(obj == null) return false;
-        User other = (User) obj;
-        if(this.id == null)
-            if(other.id != null)
-                return false;
-            else if (!this.id.equals(other.id))
-                return false;
-        return Objects.equals(this.id, other.id) && Objects.equals(this.username, other.username) && Objects.equals(this.password, other.password);
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
-        return result;
-    }
 }
